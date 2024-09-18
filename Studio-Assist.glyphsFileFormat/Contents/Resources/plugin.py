@@ -112,7 +112,7 @@ class StudioAssist(FilterWithDialog):
             (525, 285, 50, 50), displayWhenStopped=False
         )
 
-        self.w.group.progressLabel = TextBox((5, 320, 400, 25), "")
+        self.w.group.progressLabel = TextBox((5, 360, 600, 25), "")
 
         # Development Options
         # left, top, width, height
@@ -183,26 +183,6 @@ class StudioAssist(FilterWithDialog):
         Glyphs.addCallback(self.exportCallback, DOCUMENTEXPORTED)
        
 
-        # Testing the network end point
-        endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_url_get_status)
-        endpoint = endpoint.replace("{font_id}", "font_id")
-
-        self.networkLog.info(f"Checking network endpoint {endpoint}")        
-
-        result = self.network.ping_url(endpoint)
-        #result = rest.api().ping_url(endpoint)
-        if(result == 200):
-            self.w.group.EndPointsBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.networkLog.info(f"Network connection good {endpoint}")
-
-        else:
-            self.w.group.EndPointsBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.networkLog.error(f"Network connection failure {result}")
-
         #####
 
         # Testing the font to make sure has only one master
@@ -257,6 +237,26 @@ class StudioAssist(FilterWithDialog):
             self.outlinesLog.info("Font has required outlines")
             self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Ready...")
 
+        #####
+
+        # Testing the network connection
+        endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_url_get_status)
+        endpoint = endpoint.replace("{font_id}", "font_id")
+
+        self.networkLog.info(f"Checking network connection {endpoint}")        
+
+        result = self.network.ping_url(endpoint)
+        if(result == 200):
+            self.w.group.EndPointsBox.setBorderColor(
+                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+            )
+            self.networkLog.info(f"Network connection good {endpoint}")
+
+        else:
+            self.w.group.EndPointsBox.setBorderColor(
+                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+            )
+            self.networkLog.error(f"Network connection failure {result}")
 
 
     #
@@ -291,7 +291,6 @@ class StudioAssist(FilterWithDialog):
             self.progressLog.info("Generating Outlines")
             self.generateOutlines()
 
-        self.progressLog.info("")
         self.w.group.progressSpinner.stop()
         self.w.group.generateButton.enable(False)
 
@@ -340,7 +339,6 @@ class StudioAssist(FilterWithDialog):
 
             # post the font so that the service can do the fine tuning
             self.progressLog.info(f"Posting the font to {post_url}")
-            #post_status, font_id = rest.api().post_font(
             post_status, font_id = self.network.post_font(
                 post_url, self.full_export_font_path
             )
@@ -350,20 +348,26 @@ class StudioAssist(FilterWithDialog):
             if post_status == 202:
                 self.progressLog.info(f"Polling {poll_url} for completion")
                 poll_url = poll_url.replace("{font_id}", font_id)
-                # poll_status = rest.api().poll_for_completion(poll_url, font_id)
                 poll_status = self.network.poll_for_completion(poll_url, font_id)
 
             # when the fine tuning is completed get the zip file with the outline images
             if poll_status == 200:
                 self.progressLog.info(f"Fetching the zip file {fetch_font_url}")
                 fetch_font_url = fetch_font_url.replace("{font_id}", font_id)
-               # get_font_status = rest.api().get_genai_font_zip(
+
+                list_of_characters = []
+
+                for unicode in self.list_of_unicodes:
+                    decimal_to_character = chr(int(unicode, 16))
+                    list_of_characters.append(decimal_to_character)
+
                 get_font_status = self.network.get_genai_font_zip(
                     fetch_font_url,
                     self.full_path_to_zip,
                     font_id,
-                    self.list_of_unicodes,
+                    list_of_characters,
                 )
+
 
             # unpack the images and verify there is one image for each unicode requested
             if get_font_status == 200:
@@ -378,6 +382,9 @@ class StudioAssist(FilterWithDialog):
 
                 self.progressLog.info(f"Importing the oulines from {extraction_folder}")
                 self.import_glyph_outlines(extraction_folder)
+            
+            else:
+                self.progressLog.error(f"Error: {get_font_status}")
 
      
     #
@@ -670,7 +677,7 @@ class StudioAssist(FilterWithDialog):
                 )
 
                 if result is True:
-                    self.progressLog.info(f"Font exported successfully to {export_folder}")
+                    self.progressLog.info(f"Font exported successfully to {self.full_export_font_path}")
                     return True
 
                 else:
@@ -680,6 +687,29 @@ class StudioAssist(FilterWithDialog):
         except Exception as e:
             self.progressLog.error(f"Export failed: {e}")
             return False
+
+
+
+
+    #
+    #
+    # Called when a font is exported by glyphs app if a font is exported. 
+    # This is called for every instance and notification.object() will 
+    # contain the path to the final font file. 
+    #
+    # Todo:
+    #
+    @objc.python_method
+    def exportCallback(self, info):
+        try:
+            obj = info.object()
+            self.full_export_font_path = obj['fontFilePath']
+           
+        except:
+            # Error. Print exception.
+            import traceback
+            print(traceback.format_exc())
+
 
 
 
@@ -735,25 +765,6 @@ class StudioAssist(FilterWithDialog):
             self.progressLog.info("Not Scaling Imported Glyphs")
 
 
-
-    #
-    #
-    # Called when a font is exported by glyphs app if a font is exported. 
-    # This is called for every instance and notification.object() will 
-    # contain the path to the final font file. 
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def exportCallback(self, info):
-        try:
-            obj = info.object()
-            self.full_export_font_path = obj['fontFilePath']
-           
-        except:
-            # Error. Print exception.
-            import traceback
-            print(traceback.format_exc())
 
 
     #
