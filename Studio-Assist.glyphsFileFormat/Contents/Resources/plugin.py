@@ -13,6 +13,7 @@ import os
 import rest
 import test
 from log import Log
+from rest import Api
 
 
 from GlyphsApp import *
@@ -157,6 +158,7 @@ class StudioAssist(FilterWithDialog):
         self.mastersLog     = Log(self.w.group.MasterLabel)
         self.characterLog   = Log(self.w.group.CharacterLabel)
         self.outlinesLog    = Log(self.w.group.OutlineLabel)
+        self.network        = Api(self.networkLog)
 
 
         self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Starting...")
@@ -187,7 +189,8 @@ class StudioAssist(FilterWithDialog):
 
         self.networkLog.info(f"Checking network endpoint {endpoint}")        
 
-        result = rest.api().ping_url(endpoint)
+        result = self.network.ping_url(endpoint)
+        #result = rest.api().ping_url(endpoint)
         if(result == 200):
             self.w.group.EndPointsBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
@@ -337,7 +340,8 @@ class StudioAssist(FilterWithDialog):
 
             # post the font so that the service can do the fine tuning
             self.progressLog.info(f"Posting the font to {post_url}")
-            post_status, font_id = rest.api().post_font(
+            #post_status, font_id = rest.api().post_font(
+            post_status, font_id = self.network.post_font(
                 post_url, self.full_export_font_path
             )
 
@@ -346,13 +350,15 @@ class StudioAssist(FilterWithDialog):
             if post_status == 202:
                 self.progressLog.info(f"Polling {poll_url} for completion")
                 poll_url = poll_url.replace("{font_id}", font_id)
-                poll_status = rest.api().poll_for_completion(poll_url, font_id)
+                # poll_status = rest.api().poll_for_completion(poll_url, font_id)
+                poll_status = self.network.poll_for_completion(poll_url, font_id)
 
             # when the fine tuning is completed get the zip file with the outline images
             if poll_status == 200:
                 self.progressLog.info(f"Fetching the zip file {fetch_font_url}")
                 fetch_font_url = fetch_font_url.replace("{font_id}", font_id)
-                get_font_status = rest.api().get_genai_font_zip(
+               # get_font_status = rest.api().get_genai_font_zip(
+                get_font_status = self.network.get_genai_font_zip(
                     fetch_font_url,
                     self.full_path_to_zip,
                     font_id,

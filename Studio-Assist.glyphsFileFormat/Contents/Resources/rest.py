@@ -9,7 +9,6 @@
 
 
 from __future__ import division, print_function, unicode_literals
-import time
 import objc
 import ssl
 import os
@@ -20,7 +19,7 @@ from GlyphsApp import *
 from GlyphsApp.plugins import *
 
 
-class api(object):
+class Api(object):
 
     #
     #
@@ -29,7 +28,9 @@ class api(object):
     # Todo:
     #
     @objc.python_method
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
+
         # Flag for removing http security protection
         self.httpSecurityOff = True
 
@@ -39,7 +40,6 @@ class api(object):
             # Currently Crashing
             # ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED]
             self.ctx = ssl.create_default_context()
-
 
 
     #
