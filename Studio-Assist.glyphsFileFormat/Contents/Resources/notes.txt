@@ -1,0 +1,97 @@
+
+#######################################################
+# Glyphs uses Python in tis folder
+/Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework
+
+
+
+
+#######################################################
+ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)
+
+
+
+
+#######################################################
+# Installing Python packages that Glyphs App can find
+# The following command will use pip3 to install the requests Python package into the Glyphs App Python area.
+~/Library/Application\ Support/Glyphs\ 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/Current/bin/pip3 install -t ~/Library/Application\ Support/Glyphs\ 3/Scripts/site-packages requests
+
+
+
+
+#######################################################
+# Un-installing Python packages that Glyphs App can find
+????
+
+
+#######################################################
+# Generating SVG Images using Font Forge
+
+https://barrd.dev/article/convert-all-glyphs-of-a-font-to-individual-svg-files/#link4283-02
+
+* Download FontForge
+* Create a folder to store the SVG images in
+* Open Font Forge
+* Select Execute Script from FontForge File Menu
+* Click on the FF option this will add FontForge syntax instead of Python
+* Copy this code into the Execute Script text view
+        SelectAll()
+        UnlinkReference()
+        Export("/full/path/to/svg/%n-%e.svg")
+* Replace full/path/to/svg the path match the folder created above
+* Click OK
+* Each glych will be rendered into a SVG file and stored in that SVG folder specified
+* If it doesn't work double check that you clicked on the FF button.
+
+
+
+
+#######################################################
+# Macro Window code to dump glyph metrics information
+# Access the current font and selected glyph layer
+font = Glyphs.font  # Current font
+layer = font.selectedLayers[0]  # Active layer (selected glyph)
+
+# Get the glyph name
+glyph_name = layer.parent.name
+
+# Get the metrics of the glyph
+glyph_width = layer.width
+left_sidebearing = layer.LSB
+right_sidebearing = layer.RSB
+
+# Get the bounding box
+bbox = layer.bounds  # This is a NSRect (bounding box rectangle)
+
+# Print the metrics
+print(f"Glyph: {glyph_name}")
+print(f"Width: {glyph_width}")
+print(f"Left Sidebearing (LSB): {left_sidebearing}")
+print(f"Right Sidebearing (RSB): {right_sidebearing}")
+print(f"Bounding box: {bbox}")
+print(f"Bounding box X: {bbox.origin.x}, Y: {bbox.origin.y}, Width: {bbox.size.width}, Height: {bbox.size.height}")
+
+
+
+
+######################################################
+# Macro Window code to dump the paths of modules
+# which can then be added to the search path 
+# of Pylance or python
+import objc
+print(objc.__file__)
+import GlyphsApp
+print(GlyphsApp.__file__)
+import vanilla
+print(vanilla.__file__)
+import Foundation
+print(Foundation.__file__)
+import AppKit
+print(AppKit.__file__)
+
+/Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/3.11/lib/python3.11/site-packages/objc/__init__.py
+/Applications/Glyphs 3.app/Contents/Scripts311/GlyphsApp/__init__.pyc
+/Users/comeaub/Library/Application Support/Glyphs 3/Scripts/vanilla/__init__.py
+/Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/3.11/lib/python3.11/site-packages/Foundation/__init__.py
+/Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/3.11/lib/python3.11/site-packages/AppKit/__init__.py
