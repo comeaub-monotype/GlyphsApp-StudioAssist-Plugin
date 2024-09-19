@@ -60,11 +60,12 @@ class Api(object):
 
         try:
             response = requests.get(url, timeout=(self.connect_timeout, self.read_timeout))
+            response.raise_for_status()  # Raise an exception for non-2xx status codes
             self.networkLog.info(f"Response: {response.status_code}") 
             return response.status_code
 
         except requests.exceptions.RequestException as e:
-            self.networkLog.info(f"Error: {e.response.status_code}") 
+            self.networkLog.info(f"Error: {e}") 
             return e
             
 
