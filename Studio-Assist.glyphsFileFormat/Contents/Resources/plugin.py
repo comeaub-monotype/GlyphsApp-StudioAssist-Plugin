@@ -41,7 +41,7 @@ class StudioAssist(FilterWithDialog):
     @objc.python_method
     def settings(self):
 
-        self.gen_ai_plugin_version = "1.0.2"
+        self.gen_ai_plugin_version = "1.0.3"
 
         self.menuName = Glyphs.localize(
             {
@@ -71,31 +71,40 @@ class StudioAssist(FilterWithDialog):
     
 
 
+
         # Build the UI
-        width = 700
-        height = 400
+        width = 800
+        height = 500
 
         self.w = Window((width, height))
+ 
+        #self.w.group = Group((0, 0, width, height))
 
-        self.w.group = Group((0, 0, width, height))
+
         # (left, top, width, height)
-        self.w.group.EndPointsBox = Box((5, 25, 400, 25))
-        self.w.group.EndPointsLabel = TextBox((10, 27, 400, 22), "Endpoint Status")
+        self.w.tabs = Tabs((20, 10, -10, -10), ["Glyph Generation", "Kerning"])
+        self.genAITab = self.w.tabs[0]
+        
+        self.genAITab.EndPointsBox = Box((5, 25, 400, 25))
+        self.genAITab.EndPointsLabel = TextBox((10, 27, 400, 22), "Endpoint Status")
 
-        self.w.group.MasterLabelBox = Box((5, 55, 400, 25))
-        self.w.group.MasterLabel = TextBox((10, 57, 400, 22), "Master Status")
+        self.genAITab.MasterLabelBox = Box((5, 55, 400, 25))
+        self.genAITab.MasterLabel = TextBox((10, 57, 400, 22), "Master Status")
 
-        self.w.group.CharacterLabelBox = Box((5, 85, 400, 25))
-        self.w.group.CharacterLabel = TextBox((10, 87, 400, 22), "Character Status")
+        self.genAITab.CharacterLabelBox = Box((5, 85, 400, 25))
+        self.genAITab.CharacterLabel = TextBox((10, 87, 400, 22), "Character Status")
 
-        self.w.group.OutlineLabelBox = Box((5, 115, 400, 25))
-        self.w.group.OutlineLabel = TextBox((10, 117, 400, 22), "Outline Status")
+        self.genAITab.OutlineLabelBox = Box((5, 115, 400, 25))
+        self.genAITab.OutlineLabel = TextBox((10, 117, 400, 22), "Outline Status")
 
-        self.w.group.UnicodeRangeLabel = TextBox(
+        self.genAITab.UPMLabelBox = Box((5, 145, 400, 25))
+        self.genAITab.UPMLabel = TextBox((10, 147, 400, 22), "Units per Em Status")
+
+        self.genAITab.UnicodeRangeLabel = TextBox(
             (5, 200, 375, 25),
             "Enter hexidecimal unicode values or range to generate",
         )
-        self.w.group.UnicodeRangeEdit = EditText(
+        self.genAITab.UnicodeRangeEdit = EditText(
             (5, 225, 400, 25),
             callback=self.unicodeRangeCallback,
             placeholder="example: 0041-004f, 0054, 0056",
@@ -104,43 +113,49 @@ class StudioAssist(FilterWithDialog):
         # Be very careful about the position of buttons
         # In some cases button events wont happen if for
         # example label is placed over a button
-        self.w.group.generateButton = Button(
+        self.genAITab.generateButton = Button(
             (5, 260, 150, 50), "Generate Outlines", callback=self.generateOutlinesButton
         )
 
-        self.w.group.progressSpinner = ProgressSpinner(
+        self.genAITab.progressSpinner = ProgressSpinner(
             (525, 285, 50, 50), displayWhenStopped=False
         )
 
-        self.w.group.progressLabel = TextBox((5, 360, 600, 25), "")
+        self.genAITab.progressLabel = TextBox((5, 360, 600, 25), "")
 
         # Development Options
         # left, top, width, height
-        self.w.group.box = Box((460, 25, 200, 200))
-        self.w.group.boxtext = TextBox((465, 30, 150, 25), "Developer Options")
+        self.genAITab.box = Box((460, 25, 200, 200))
+        self.genAITab.boxtext = TextBox((465, 30, 150, 25), "Developer Options")
 
-        self.w.group.simulateAPICalls = CheckBox(
+        self.genAITab.simulateAPICalls = CheckBox(
             (465, 65, -10, 20),
             "Simulate API Calls",
             callback=self.simulateAPICalls,
             value=False,
         )
 
-        self.w.group.shiftImportedGlyphs = CheckBox(
+        self.genAITab.shiftImportedGlyphs = CheckBox(
             (465, 85, -10, 20),
             "Shift To Baseline",
             callback=self.shiftImportedGlyphs,
             value=False,
         ) 
-        self.w.group.scaleImportedGlyphs = CheckBox(
+        self.genAITab.scaleImportedGlyphs = CheckBox(
             (465, 105, -10, 20),
             "Scale To Cap Height",
             callback=self.scaleImportedGlyphs,
             value=False,
         )
 
+
+        self.kerningTab = self.w.tabs[1]
+        self.kerningTab.text = TextBox((10, 10, -10, -10), "TBD")
+
         # We only need the group, not the window. But vanilla doesn’t seem to be able to build a view outside of a window
-        self.dialog = self.w.group.getNSView()
+        #self.dialog = self.genAITab.getNSView()
+        self.dialog = self.w.tabs.getNSTabView()
+     
      
 
     #
@@ -153,17 +168,18 @@ class StudioAssist(FilterWithDialog):
     def start(self):
 
         # Your init code goes here...
-        self.progressLog    = Log(self.w.group.progressLabel)
-        self.networkLog     = Log(self.w.group.EndPointsLabel)
-        self.mastersLog     = Log(self.w.group.MasterLabel)
-        self.characterLog   = Log(self.w.group.CharacterLabel)
-        self.outlinesLog    = Log(self.w.group.OutlineLabel)
+        self.progressLog    = Log(self.genAITab.progressLabel)
+        self.networkLog     = Log(self.genAITab.EndPointsLabel)
+        self.mastersLog     = Log(self.genAITab.MasterLabel)
+        self.characterLog   = Log(self.genAITab.CharacterLabel)
+        self.outlinesLog    = Log(self.genAITab.OutlineLabel)
+        self.upmLog         = Log(self.genAITab.UPMLabel)
         self.network        = Api(self.networkLog)
 
 
         self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Starting...")
         
-        self.w.group.generateButton.enable(False)
+        self.genAITab.generateButton.enable(False)
 
         self.font = Glyphs.font
       
@@ -189,13 +205,13 @@ class StudioAssist(FilterWithDialog):
         self.mastersLog.info("Checking masters")
 
         if test_obj.calculateMasters() == 1:
-            self.w.group.MasterLabelBox.setBorderColor(
+            self.genAITab.MasterLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
             )
             self.mastersLog.info("Font has 1 master")
 
         else:
-            self.w.group.MasterLabelBox.setBorderColor(
+            self.genAITab.MasterLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
             )
             self.mastersLog.error("Font has more than 1 master")
@@ -207,13 +223,13 @@ class StudioAssist(FilterWithDialog):
 
         missingCharacters = test_obj.calculateMissingCharacters()
         if len(missingCharacters):
-            self.w.group.CharacterLabelBox.setBorderColor(
+            self.genAITab.CharacterLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
             )
             self.characterLog.error(f"Font is missing characters: {', '.join(missingCharacters)}")
 
         else:
-            self.w.group.CharacterLabelBox.setBorderColor(
+            self.genAITab.CharacterLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
             )
             self.characterLog.info(f"Font has required characters")
@@ -225,17 +241,33 @@ class StudioAssist(FilterWithDialog):
 
         missingOutlines = test_obj.calculateMissingOutlines()
         if len(missingOutlines):
-            self.w.group.OutlineLabelBox.setBorderColor(
+            self.genAITab.OutlineLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
             )
             self.outlinesLog.error(f"Font is missing outlines: {', '.join(missingOutlines)}")
 
         else:
-            self.w.group.OutlineLabelBox.setBorderColor(
+            self.genAITab.OutlineLabelBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
             )
             self.outlinesLog.info("Font has required outlines")
-            self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Ready...")
+
+        #####
+
+        # Check that the font is using the correct UPM
+        self.upmLog.info("Checking required Units per Em (UMM)")
+
+        units_per_em = test_obj.calculateUPM()
+        if units_per_em == 1000:
+            self.genAITab.UPMLabelBox.setBorderColor(
+                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+            )
+            self.upmLog.info(f"Font has required UPM {units_per_em}")
+        else:
+            self.genAITab.UPMLabelBox.setBorderColor(
+                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+            )
+            self.upmLog.error(f"Font does not have required UPM {units_per_em}")
 
         #####
 
@@ -247,16 +279,22 @@ class StudioAssist(FilterWithDialog):
 
         result = self.network.ping_url(endpoint)
         if(result == 200):
-            self.w.group.EndPointsBox.setBorderColor(
+            self.genAITab.EndPointsBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
             )
             self.networkLog.info(f"Network connection good {endpoint}")
+            self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Ready...")
+
 
         else:
-            self.w.group.EndPointsBox.setBorderColor(
+            self.genAITab.EndPointsBox.setBorderColor(
                 NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
             )
             self.networkLog.error(f"Network connection failure {result}")
+
+        # pre-populate the unicode range with the selected glyphs
+        self.genAITab.UnicodeRangeEdit.set(self.getSelectedLayers())
+
 
 
     #
@@ -269,9 +307,28 @@ class StudioAssist(FilterWithDialog):
     def filter(self, layer, inEditView, customParameters):
         return
         # Apply your filter code here
-        # self.progressLog.info(f"Apply Button hit {layer} {inEditView} {customParameters}")
 
 
+    #
+    #
+    # Called when
+    #
+    # Todo:  
+    #
+    @objc.python_method
+    def getSelectedLayers(self):
+        selectedLayers = self.font.selectedLayers
+        unicodes = []
+
+        for layer in selectedLayers:
+            u = str(int(layer.parent.unicode,16))
+            x = hex(int(u)).split('x')
+            unicodes.append(x[1])
+        
+        comma_seperated = ', '.join(map(str, unicodes))
+
+        return comma_seperated
+        
 
     #
     #
@@ -282,7 +339,7 @@ class StudioAssist(FilterWithDialog):
     @objc.python_method
     def generateOutlinesButton(self, sender):
         
-        self.w.group.progressSpinner.start()
+        self.genAITab.progressSpinner.start()
         
         if self.gen_ai_debug_simulate_api_calls:
             self.progressLog.info("Simulating Outline Generation")
@@ -291,8 +348,8 @@ class StudioAssist(FilterWithDialog):
             self.progressLog.info("Generating Outlines")
             self.generateOutlines()
 
-        self.w.group.progressSpinner.stop()
-        self.w.group.generateButton.enable(False)
+        self.genAITab.progressSpinner.stop()
+        self.genAITab.generateButton.enable(False)
 
 
     #
@@ -402,7 +459,7 @@ class StudioAssist(FilterWithDialog):
         missing_files = self.checkAllGenAISVGFilesReceived(directory)
 
         if missing_files:
-            self.progressLog.error(f"Error: Missing requested AI generated outlines")
+            self.progressLog.error(f"Error: Missing requested AI generated outline image files")
         
         self.importRequestedGlyhs()
 
@@ -533,9 +590,11 @@ class StudioAssist(FilterWithDialog):
             try:
                 os.unlink(characterFileUrl)  # or os.remove(link_name)
                 self.progressLog.info(f"Removed symlink: {svgFileUrl} {characterFileUrl}")
+                self.progressLog.info(f"Glyph {glyphName} imported")
 
                 # Correct the path direction
                 layerOfGlyph.correctPathDirection()
+                self.progressLog.info(f"Correcting path direction for {glyphName}")
 
                 # align the glyph to the baseline
                 self.shiftAndScale(layerOfGlyph)
@@ -643,14 +702,16 @@ class StudioAssist(FilterWithDialog):
 
                     # Todo:  validate the values in the list of unicodes
                     # before enabling the generate button
-                    # self.w.group.generateButton.enable(True)
+                    # self.genAITab.generateButton.enable(True)
 
         # else:
-        #   self.w.group.generateButton.enable(False)
+        #   self.genAITab.generateButton.enable(False)
         if len(self.list_of_unicodes):
-            self.w.group.generateButton.enable(True)
+            #self.genAITab.generateButton.enable(True)
+            self.genAITab.generateButton.enable(True)
         else:
-            self.w.group.generateButton.enable(False)
+            #self.genAITab.generateButton.enable(False)
+            self.genAITab.generateButton.enable(False)
 
     #
     #
