@@ -115,3 +115,16 @@ class Test:
                 missing_outlines.append(char)
 
         return missing_outlines
+
+
+
+#
+    #
+    # Called when
+    #
+    # Todo:
+    #
+    @objc.python_method
+    def calculateUPM(self):
+        upm = self.font.upm
+        return upm
