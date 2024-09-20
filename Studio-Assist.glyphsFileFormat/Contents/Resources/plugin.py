@@ -135,25 +135,11 @@ class StudioAssist(FilterWithDialog):
             value=False,
         )
 
-        self.genAITab.shiftImportedGlyphs = CheckBox(
-            (465, 85, -10, 20),
-            "Shift To Baseline",
-            callback=self.shiftImportedGlyphs,
-            value=False,
-        ) 
-        self.genAITab.scaleImportedGlyphs = CheckBox(
-            (465, 105, -10, 20),
-            "Scale To Cap Height",
-            callback=self.scaleImportedGlyphs,
-            value=False,
-        )
-
 
         self.kerningTab = self.w.tabs[1]
         self.kerningTab.text = TextBox((10, 10, -10, -10), "TBD")
 
-        # We only need the group, not the window. But vanilla doesn’t seem to be able to build a view outside of a window
-        #self.dialog = self.genAITab.getNSView()
+
         self.dialog = self.w.tabs.getNSTabView()
      
      
@@ -789,42 +775,6 @@ class StudioAssist(FilterWithDialog):
         else:
             self.gen_ai_debug_simulate_api_calls = False
             self.progressLog.info("Live Mode")
-
-
-    #
-    #
-    # Called when Action triggered by UI
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def shiftImportedGlyphs(self, sender):
-        if sender.get():
-            self.gen_ai_debug_shift_imported_glyphs = True
-            self.progressLog.info("Shifting Impored Glyphs")
-
-        else:
-            self.gen_ai_debug_shift_imported_glyphs = False
-            self.progressLog.info("Not Shifting Impored Glyphs")
-
-
-
-    #
-    #
-    # Called when Action triggered by UI
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def scaleImportedGlyphs(self, sender):
-        if sender.get():
-            self.gen_ai_debug_scale_imported_glyphs = True
-            self.progressLog.info("Scaling Imported Glyphs")
-
-        else:
-            self.gen_ai_debug_scale_imported_glyphs = False
-            self.progressLog.info("Not Scaling Imported Glyphs")
-
 
 
 
