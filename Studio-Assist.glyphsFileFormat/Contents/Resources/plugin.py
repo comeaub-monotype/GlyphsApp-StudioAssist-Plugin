@@ -10,14 +10,12 @@
 from __future__ import division, print_function, unicode_literals
 import objc
 import os
-import rest
 import test
 from log import Log
 from rest import Api
 
 
 from GlyphsApp import *
-from GlyphsApp.plugins import *
 from vanilla import *
 
 from urllib.parse import urljoin
