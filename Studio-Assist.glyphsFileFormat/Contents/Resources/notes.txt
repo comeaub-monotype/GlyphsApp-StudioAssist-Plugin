@@ -103,3 +103,43 @@ print(AppKit.__file__)
 /Users/comeaub/Library/Application Support/Glyphs 3/Scripts/vanilla/__init__.py
 /Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/3.11/lib/python3.11/site-packages/Foundation/__init__.py
 /Users/comeaub/Library/Application Support/Glyphs 3/Repositories/GlyphsPythonPlugin/Python.framework/Versions/3.11/lib/python3.11/site-packages/AppKit/__init__.py
+
+
+
+
+######################################################
+#API Notes
+#######################################################
+Bryan Comeau - Almost done from our end. Post API is working fine. Get API is fialing due to potrace installation.
+ Need devops help on that. But now they are not available Can only complete this on Monday.
+ 
+POST https://glyphgenai-pp.monotype.com/v1/font-outline/outline this is working incase you need
+ 
+GET https://glyphgenai-pp.monotype.com/v1/font-outline/outline/{font-id}/status also working fine
+ 
+Saikat Modak
+POST https://glyphgenai-pp.monotype.com/v1/font-outline/outline this is working incase you need
+
+curl --location 'https://glyphgenai-pp.monotype.com/v1/font-outline/outline' \
+
+--header 'Content-Type: multipart/form-data' \
+--header 'Accept: application/json' \
+--header 'Cookie: __cf_bm=7O34z22GRdcjxcEw7RmmI104CDOMFkVJjbW_BmOQbdw-1726837261-1.0.1.1-Aj5Xz1OAgemnz2XYqVKRpqimguhTRulOqErQcScOEfJ_tQ0mlrqR_0UXGcSGu_0mYiOFOOZ6z6N00stmnp7VmQ' \
+--form 'fontfile=@"/C:/Users/modaks/Downloads/Alisal Italic.otf"' \
+--form 'language="Latin"'
+ 
+Saikat Modak
+GET https://glyphgenai-pp.monotype.com/v1/font-outline/outline/{font-id}/status also working fine
+
+curl --location 'https://glyphgenai-pp.monotype.com/v1/font-outline/outline/cd9f4c6f925e9786f4a25272e383aea8/status' \
+
+--header 'Accept: application/json' \
+--header 'Cookie: __cf_bm=hV7b6T.KDcdOGIKValfZDhWG7QITgCeG9y2tIYttlJY-1726840323-1.0.1.1-ovoCpdDabJMgWC.tGsWjea1SVHQmu0HTcPO0L1MDMs5RSQkWNHFrIdNNHSVvb43pPpSQzSUeUTOsKCQnZBehNQ'
+ 
+
+ Bryan Comeau - GET also worked. Here is the curl
+ 
+curl --location 'https://glyphgenai-pp.monotype.com/v1/font-outline/outline/cd9f4c6f925e9786f4a25272e383aea8?unicode_string=ABC' \
+--header 'Accept: application/json' \
+--header 'Cookie: __cf_bm=eJ5DxggL0_LkNPg76Fc.QIi4k3deiJ0Kwf6goEzzy5s-1726841313-1.0.1.1-Pbsdc1qa05e60Tawkv7wu8zD2pEjeDPfVUSRougWM5EPvTFVms4jdYB.WaLQ70Tx0Y3n2eAKobgiGHCFkGlmDA'
+ 

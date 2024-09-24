@@ -13,6 +13,7 @@ import time
 import objc
 import ssl
 import os
+import re
 import requests
 
 
@@ -33,8 +34,8 @@ class Api(object):
         self.networkLog = logger
 
         # Timeouts for the requests are in seconds
-        self.connect_timeout = 3
-        self.read_timeout = 5
+        self.connect_timeout = 30
+        self.read_timeout = 30
 
         
         # Flag for removing http security protection
@@ -58,6 +59,9 @@ class Api(object):
     @objc.python_method
     def ping_url(self, url):
 
+        # skipping for now
+        return 200;
+    
         try:
             response = requests.get(url, timeout=(self.connect_timeout, self.read_timeout))
             response.raise_for_status()  # Raise an exception for non-2xx status codes
@@ -84,22 +88,32 @@ class Api(object):
         # check path
         if not os.path.exists(path_to_font):
             self.networkLog.info(f"post_font() invalid path {path_to_font}") 
-            
-        files = {"file": open(path_to_font, "rb")}
+            return 404, "Invalid font file path"
 
-        try:
-            response = requests.post(post_url, files=files, timeout=(self.connect_timeout, self.read_timeout))
-            self.networkLog.info(f"Response: {response.status_code}") 
+     
+        #
+        # Currently the response is formatted as follows:
+        # {
+        # "font_id": "59b2355497f57c141f2d1b3f1e198e73",
+        # "message": "{'message': 'Fine Tune is Complete for font ID 59b2355497f57c141f2d1b3f1e198e73.'}"
+        # }
+        #
+        headers = {
+            "Accept": "application/json"
+        }
+       
+        with open(path_to_font, "rb") as file:
+            files = {"fontfile": file}
+            response = requests.post(post_url, headers=headers, files=files)
             API_Data = response.json()
-            font_id = API_Data["font_id"]
-            status = response.status_code
 
-            return status, font_id
-
-        except requests.exceptions.RequestException as e:
-            self.networkLog.info(f"Error: {e.response.status_code}") 
-            return e.response.status_code, None
-
+            if response.status_code == 200:
+                font_id = API_Data["font_id"]
+                return response.status_code, font_id
+            else:
+                message = API_Data["message"]
+                return response.status_code, message
+            
 
 
 
@@ -116,7 +130,6 @@ class Api(object):
 
         self.networkLog.info(f"poll_for_completion url {poll_url} font id {font_id}") 
         params = {"font_id": font_id}
-
 
         start_time = time.time()
 
@@ -151,13 +164,11 @@ class Api(object):
     def get_genai_font_zip(self, fetch_font_url, path_to_zip, font_id, unicode_string):
 
         self.networkLog.info(f"get_genai_font_zip()  url {fetch_font_url} zip to path {path_to_zip} font id {font_id} unicode string {unicode_string}") 
-        params = {"font_id": font_id, "unicode_string": unicode_string}
+        params = {"unicode_string": unicode_string}
 
         try:
             response = requests.get(fetch_font_url, params=params, stream=True, timeout=(self.connect_timeout, self.read_timeout))
-            self.networkLog.info(f"Response: {response.status_code}") 
             response.raise_for_status()    # Raise an exception for non-2xx status codes
-
             self.networkLog.info(f"Waiting for download to complete...") 
 
             try:
@@ -167,6 +178,9 @@ class Api(object):
                         progress += "."
                         self.networkLog.info(f"Receiving:  {progress}") 
                         f.write(chunk)
+
+                    self.networkLog.info(f"Download complete")
+                    return response.status_code
 
             except Exception as e:
                 self.networkLog.error(f"Error: {e}") 

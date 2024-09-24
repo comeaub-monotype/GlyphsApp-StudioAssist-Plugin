@@ -16,6 +16,7 @@ from rest import Api
 
 
 from GlyphsApp import *
+from GlyphsApp.plugins import *
 from vanilla import *
 
 from urllib.parse import urljoin
@@ -55,11 +56,20 @@ class StudioAssist(FilterWithDialog):
         )
 
 
-        self.gen_ai_base_url = "http://172.28.1.197:5000"
-        self.gen_ai_monotype_url = "https://www.monotype.com"
-        self.gen_ai_url_post_font = "/v1/font-outline/outline"
-        self.gen_ai_url_get_status = "/v1/font-outline/outline/{font_id}/status"
-        self.gen_ai_url_get_font = "/v1/font-outline/outline/{font_id}"
+        # The base URL for the GenAI POST
+        # self.gen_ai_base_url            = "http://172.28.1.197:5000"
+        self.gen_ai_base_url            = "https://glyphgenai-pp.monotype.com"     
+        self.gen_ai_POST_font_url       = "/v1/font-outline/outline"
+        self.gen_ai_GET_status_url      = "/v1/font-outline/outline/{font_id}/status"
+        self.gen_ai_GET_zip_file_url    = "/v1/font-outline/outline/{font_id}"
+        self.gen_ai_GET_engine_status   = "/v1/font-outline/engine-status"
+
+
+        #self.gen_ai_base_url = "http://172.28.1.197:5000"
+        #self.gen_ai_monotype_url = "https://www.monotype.com"
+        #self.gen_ai_url_post_font = "/v1/font-outline/outline"
+        #self.gen_ai_url_get_status = "/v1/font-outline/outline/{font_id}/status"
+        #self.gen_ai_url_get_font = "/v1/font-outline/outline/{font_id}"
 
         self.gen_ai_debug_simulate_api_calls = False
         self.gen_ai_debug_shift_imported_glyphs = False
@@ -256,9 +266,9 @@ class StudioAssist(FilterWithDialog):
         #####
 
         # Testing the network connection
-        endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_url_get_status)
-        endpoint = endpoint.replace("{font_id}", "font_id")
-
+        endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_GET_status_url)
+        endpoint = endpoint.replace("{font_id}", "1234")
+        
         self.networkLog.info(f"Checking network connection {endpoint}")        
 
         result = self.network.ping_url(endpoint)
@@ -364,9 +374,9 @@ class StudioAssist(FilterWithDialog):
 
         self.list_of_AI_generated_outlines.clear()
 
-        post_url = urljoin(self.gen_ai_base_url, self.gen_ai_url_post_font)
-        poll_url = urljoin(self.gen_ai_base_url, self.gen_ai_url_get_status)
-        fetch_font_url = urljoin(self.gen_ai_base_url, self.gen_ai_url_get_font)
+        post_url = urljoin(self.gen_ai_base_url, self.gen_ai_POST_font_url)
+        poll_url = urljoin(self.gen_ai_base_url, self.gen_ai_GET_status_url)
+        get_font_url = urljoin(self.gen_ai_base_url, self.gen_ai_GET_zip_file_url)
 
         self.progressLog.info(f"Exporting the font here {self.export_path}")
 
@@ -384,48 +394,94 @@ class StudioAssist(FilterWithDialog):
                 post_url, self.full_export_font_path
             )
 
-            # if the post went well start polling for completion
-            # Todo: this could also be a 200??
+            # 
+            # POSTing a font can be time consuming event, currently it can take 
+            # upwards of 50 minutes to complete the "fine tuning".  The early design 
+            # of the plugin would make the POST API call and then enter into a 
+            # polling situation where the plugin would repeatedly ask the service
+            # if the fine tuning was completed.  Upon completeion the plugin would
+            # move on to the next step which is to GET the zip file with the outlines.
+            #
+            # This turns out not to be a good design because the service so for now 
+            # the plugin will POST the font and will then skip over the polling and
+            # issue the GET outlines API call.
+            # 
+            # This user experience will be worked out in the future.
+            #
             if post_status == 202:
                 self.progressLog.info(f"Polling {poll_url} for completion")
                 poll_url = poll_url.replace("{font_id}", font_id)
                 poll_status = self.network.poll_for_completion(poll_url, font_id)
 
-            # when the fine tuning is completed get the zip file with the outline images
-            if poll_status == 200:
-                self.progressLog.info(f"Fetching the zip file {fetch_font_url}")
-                fetch_font_url = fetch_font_url.replace("{font_id}", font_id)
+
+
+            
+            if post_status == 200:
+                self.progressLog.info(f"POST completed font_id is {font_id}")
+                get_font_url = get_font_url.replace("{font_id}", font_id)
+                self.progressLog.info(f"GETing the zip file {get_font_url}")
 
                 list_of_characters = []
 
+
+
+
+                # for long lists of characters the plugin will need to do multiple GET calls
+                # to retrieve the outlines.
+                # fonr now limit the number of characters to 5
+                #
+                #for i in range(0, len(self.list_of_unicodes), 5):
+                 #   short_list = ''.join(self.list_of_unicodes[i:i+5])
+                  
+                  #  self.progressLog.info(f"Short list {short_list}")
+                
                 for unicode in self.list_of_unicodes:
                     decimal_to_character = chr(int(unicode, 16))
                     list_of_characters.append(decimal_to_character)
+                    unicode_string = ''.join(list_of_characters)
 
+            
+                # during this step the plugin will retrieve a zip file that has the 
+                # AI generated outlines for the requested characters
+                #
                 get_font_status = self.network.get_genai_font_zip(
-                    fetch_font_url,
+                    get_font_url,
                     self.full_path_to_zip,
                     font_id,
-                    list_of_characters,
-                )
+                    list_of_characters
+                 )
 
 
-            # unpack the images and verify there is one image for each unicode requested
-            if get_font_status == 200:
-                self.progressLog.info(f"Unpacking the zip file {self.full_path_to_zip}")
-                extraction_folder = os.path.join(self.export_path, "Extracted")
+                # unpack the images and verify there is one image for each unicode requested
+                if get_font_status == 200:
+                    self.progressLog.info(f"Unpacking the zip file {self.full_path_to_zip}")
+                    extraction_folder = os.path.join(self.export_path, "Extracted")
+                                            
+                    if not os.path.exists(extraction_folder):
+                        os.makedirs(extraction_folder)
                                         
-                if not os.path.exists(extraction_folder):
-                    os.makedirs(extraction_folder)
-                                    
-                with zipfile.ZipFile(self.full_path_to_zip, "r") as zip_ref:
-                    zip_ref.extractall(extraction_folder)
+                    with zipfile.ZipFile(self.full_path_to_zip, "r") as zip_ref:
+                        zip_ref.extractall(extraction_folder)
 
-                self.progressLog.info(f"Importing the oulines from {extraction_folder}")
-                self.import_glyph_outlines(extraction_folder)
-            
+                    self.progressLog.info(f"Importing the oulines from {extraction_folder}")
+                    self.import_glyph_outlines(extraction_folder)
+                
+                else:
+                    self.progressLog.error(f"Error: {get_font_status}")
+
+            # 
+            # The service that handles the POST call is running on a single GPU instance
+            # and can only handle one request at a time.  If the service is busy it will
+            # return a 503 status code.  The plugin will need to retry the POST call at a 
+            # later time. 
+            # In the future the plan is to have the service scale to handle multiple requests
+            #
+            elif post_status == 503:
+                self.progressLog.error(f"Error: {post_status} return code {font_id}")
+
             else:
-                self.progressLog.error(f"Error: {get_font_status}")
+                self.progressLog.error(f"Error: POST failed with a {post_status}")
+
 
      
     #
@@ -436,8 +492,6 @@ class StudioAssist(FilterWithDialog):
     #
     @objc.python_method
     def import_glyph_outlines(self, directory):
-
-        self.progressLog.info(f"Importing SVG Images from {directory}")
 
         # Import any of the AI generated outlines that were received
         missing_files = self.checkAllGenAISVGFilesReceived(directory)
@@ -461,7 +515,8 @@ class StudioAssist(FilterWithDialog):
         self.progressLog.info(f"Checking for AI generated outlines from {directory}")
         
         for pattern in self.list_of_unicodes:
-            filename = pattern + ".svg"
+            zero_filleda_pattern = pattern.zfill(4)
+            filename = zero_filleda_pattern + ".svg"
             self.progressLog.info(f"Searching {directory} for {filename}")
 
             path = self.searchFiles(directory, filename)
@@ -486,11 +541,16 @@ class StudioAssist(FilterWithDialog):
     @objc.python_method
     def searchFiles(self, dir_path, filename):
 
-        for root, dirs, files in os.walk(dir_path):
-            if filename in files:
-                return os.path.join(root, filename)
-        
+        for entry in os.scandir(dir_path):
+            if entry.is_file() and entry.name == filename:
+                return entry.path
+            elif entry.is_dir():
+                result = self.searchFiles(entry.path, filename)
+                if result:
+                    return result
+
         return None
+    
 
 
 
