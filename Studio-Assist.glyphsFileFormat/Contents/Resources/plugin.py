@@ -40,7 +40,7 @@ class StudioAssist(FilterWithDialog):
     @objc.python_method
     def settings(self):
 
-        self.gen_ai_plugin_version = "1.0.3"
+        self.gen_ai_plugin_version = "1.0.4"
 
         self.menuName = Glyphs.localize(
             {
@@ -64,13 +64,6 @@ class StudioAssist(FilterWithDialog):
         self.gen_ai_GET_zip_file_url    = "/v1/font-outline/outline/{font_id}"
         self.gen_ai_GET_engine_status   = "/v1/font-outline/engine-status"
 
-
-        #self.gen_ai_base_url = "http://172.28.1.197:5000"
-        #self.gen_ai_monotype_url = "https://www.monotype.com"
-        #self.gen_ai_url_post_font = "/v1/font-outline/outline"
-        #self.gen_ai_url_get_status = "/v1/font-outline/outline/{font_id}/status"
-        #self.gen_ai_url_get_font = "/v1/font-outline/outline/{font_id}"
-
         self.gen_ai_debug_simulate_api_calls = False
         self.gen_ai_debug_shift_imported_glyphs = False
         self.gen_ai_debug_scale_imported_glyphs = False
@@ -78,75 +71,89 @@ class StudioAssist(FilterWithDialog):
         self.export_path = ""
     
 
-
-
         # Build the UI
-        width = 800
-        height = 500
+        width = 700
+        height = 275
+
+        GenAI_UI_start_x_position = 5
+        GenAI_UI_sart_y_position = 50
+
+        Kerning_UI_start_x_position = 5
+        Kerning_UI_sart_y_position = 50
+
 
         self.w = Window((width, height))
- 
-        #self.w.group = Group((0, 0, width, height))
 
 
         # (left, top, width, height)
         self.w.tabs = Tabs((20, 10, -10, -10), ["Glyph Generation", "Kerning"])
         self.genAITab = self.w.tabs[0]
         
-        self.genAITab.EndPointsBox = Box((5, 25, 400, 25))
-        self.genAITab.EndPointsLabel = TextBox((10, 27, 400, 22), "Endpoint Status")
+        #self.genAITab.EndPointsBox = Box((5, 25, 400, 25))
+        #self.genAITab.EndPointsLabel = TextBox((10, 27, 400, 22), "Endpoint Status")
 
-        self.genAITab.MasterLabelBox = Box((5, 55, 400, 25))
-        self.genAITab.MasterLabel = TextBox((10, 57, 400, 22), "Master Status")
+        #self.genAITab.MasterLabelBox = Box((5, 55, 400, 25))
+        #self.genAITab.MasterLabel = TextBox((10, 57, 400, 22), "Master Status")
 
-        self.genAITab.CharacterLabelBox = Box((5, 85, 400, 25))
-        self.genAITab.CharacterLabel = TextBox((10, 87, 400, 22), "Character Status")
+        #self.genAITab.CharacterLabelBox = Box((5, 85, 400, 25))
+        #self.genAITab.CharacterLabel = TextBox((10, 87, 400, 22), "Character Status")
 
-        self.genAITab.OutlineLabelBox = Box((5, 115, 400, 25))
-        self.genAITab.OutlineLabel = TextBox((10, 117, 400, 22), "Outline Status")
+        #self.genAITab.OutlineLabelBox = Box((5, 115, 400, 25))
+        #self.genAITab.OutlineLabel = TextBox((10, 117, 400, 22), "Outline Status")
 
-        self.genAITab.UPMLabelBox = Box((5, 145, 400, 25))
-        self.genAITab.UPMLabel = TextBox((10, 147, 400, 22), "Units per Em Status")
+        #self.genAITab.UPMLabelBox = Box((5, 145, 400, 25))
+        #self.genAITab.UPMLabel = TextBox((10, 147, 400, 22), "Units per Em Status")
 
         self.genAITab.UnicodeRangeLabel = TextBox(
-            (5, 200, 375, 25),
+            (GenAI_UI_start_x_position, GenAI_UI_sart_y_position, 375, 25),
             "Enter hexidecimal unicode values or range to generate",
         )
+
         self.genAITab.UnicodeRangeEdit = EditText(
-            (5, 225, 400, 25),
+            (GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 25, 400, 25),
             callback=self.unicodeRangeCallback,
             placeholder="example: 0041-004f, 0054, 0056",
             continuous=True,  # call the callback on each key stroke
         )
+
         # Be very careful about the position of buttons
         # In some cases button events wont happen if for
         # example label is placed over a button
         self.genAITab.generateButton = Button(
-            (5, 260, 150, 50), "Generate Outlines", callback=self.generateOutlinesButton
+            (GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 60, 150, 50), "Generate Outlines", callback=self.generateOutlinesButton
         )
 
         self.genAITab.progressSpinner = ProgressSpinner(
-            (525, 285, 50, 50), displayWhenStopped=False
+            (525, 50, 50, 50), displayWhenStopped=False
         )
+        
 
-        self.genAITab.progressLabel = TextBox((5, 360, 600, 25), "")
+        # Progress Label
+        # used to communcate the status of the plugin to the end user
+        self.genAITab.progressLabelBox = Box((GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 125, 600, 25))
+        self.genAITab.progressLabel = TextBox((GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 127, 600, 25), "")
+
+
+        self.genAITab.diagnosticLabelBox = Box((GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 160, 600, 25))
+        self.genAITab.diagnosticLabel = TextBox((GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 162, 600, 25), "")
+        self.diagnosticStatus = True
+
 
         # Development Options
         # left, top, width, height
-        self.genAITab.box = Box((460, 25, 200, 200))
-        self.genAITab.boxtext = TextBox((465, 30, 150, 25), "Developer Options")
+        #self.genAITab.box = Box((460, 25, 200, 200))
+        #self.genAITab.boxtext = TextBox((465, 30, 150, 25), "Developer Options")
 
-        self.genAITab.simulateAPICalls = CheckBox(
-            (465, 65, -10, 20),
-            "Simulate API Calls",
-            callback=self.simulateAPICalls,
-            value=False,
-        )
+        #self.genAITab.simulateAPICalls = CheckBox(
+        #    (465, 65, -10, 20),
+        #    "Simulate API Calls",
+        #    callback=self.simulateAPICalls,
+        #    value=False,
+        #)
 
 
         self.kerningTab = self.w.tabs[1]
         self.kerningTab.text = TextBox((10, 10, -10, -10), "TBD")
-
 
         self.dialog = self.w.tabs.getNSTabView()
      
@@ -161,31 +168,27 @@ class StudioAssist(FilterWithDialog):
     @objc.python_method
     def start(self):
 
+        # reset the diagnostic status
+        self.diagnosticStatus = True
+
         # Your init code goes here...
         self.progressLog    = Log(self.genAITab.progressLabel)
-        self.networkLog     = Log(self.genAITab.EndPointsLabel)
-        self.mastersLog     = Log(self.genAITab.MasterLabel)
-        self.characterLog   = Log(self.genAITab.CharacterLabel)
-        self.outlinesLog    = Log(self.genAITab.OutlineLabel)
-        self.upmLog         = Log(self.genAITab.UPMLabel)
-        self.network        = Api(self.networkLog)
+        self.diagnosticLog  = Log(self.genAITab.diagnosticLabel)
+        #self.networkLog     = Log(self.genAITab.EndPointsLabel)
+        #self.mastersLog     = Log(self.genAITab.MasterLabel)
+        #self.characterLog   = Log(self.genAITab.CharacterLabel)
+        #self.outlinesLog    = Log(self.genAITab.OutlineLabel)
+        #self.upmLog         = Log(self.genAITab.UPMLabel)
+        self.network        = Api(self.progressLog)
 
 
         self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Starting...")
-        
         self.genAITab.generateButton.enable(False)
-
         self.font = Glyphs.font
-      
         self.export_path = os.path.expanduser(self.root_path + self.font.familyName)
-
         self.progressLog.fontInfo(self.font)
-
         self.list_of_unicodes = []
         self.list_of_AI_generated_outlines = []
-
-        test_obj = test.Test(self.font)
-
 
         # This callback is called when a user generates glyphs which
         # triggers the plugin to export the active font file to 
@@ -193,104 +196,23 @@ class StudioAssist(FilterWithDialog):
         Glyphs.addCallback(self.exportCallback, DOCUMENTEXPORTED)
        
 
-        #####
+        # Run the diagnostic tests on the font to make sure it is
+        # properly configured to work with the GenAI service
+        self.runDiagnosticTests()
 
-        # Testing the font to make sure has only one master
-        self.mastersLog.info("Checking masters")
 
-        if test_obj.calculateMasters() == 1:
-            self.genAITab.MasterLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.mastersLog.info("Font has 1 master")
-
-        else:
-            self.genAITab.MasterLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.mastersLog.error("Font has more than 1 master")
-
-        #####
-
-        # Check that the font has the required characters
-        self.characterLog.info("Checking required characters are present")
-
-        missingCharacters = test_obj.calculateMissingCharacters()
-        if len(missingCharacters):
-            self.genAITab.CharacterLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.characterLog.error(f"Font is missing characters: {', '.join(missingCharacters)}")
-
-        else:
-            self.genAITab.CharacterLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.characterLog.info(f"Font has required characters")
-
-        #####
-
-        # Check that the required characters actually have outlines
-        self.outlinesLog.info("Checking required outlines present")
-
-        missingOutlines = test_obj.calculateMissingOutlines()
-        if len(missingOutlines):
-            self.genAITab.OutlineLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.outlinesLog.error(f"Font is missing outlines: {', '.join(missingOutlines)}")
-
-        else:
-            self.genAITab.OutlineLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.outlinesLog.info("Font has required outlines")
-
-        #####
-
-        # Check that the font is using the correct UPM
-        self.upmLog.info("Checking required Units per Em (UMM)")
-
-        units_per_em = test_obj.calculateUPM()
-        if units_per_em == 1000:
-            self.genAITab.UPMLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.upmLog.info(f"Font has required UPM {units_per_em}")
-        else:
-            self.genAITab.UPMLabelBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.upmLog.error(f"Font does not have required UPM {units_per_em}")
-
-        #####
-
-        # Testing the network connection
-        endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_GET_status_url)
-        endpoint = endpoint.replace("{font_id}", "1234")
-        
-        self.networkLog.info(f"Checking network connection {endpoint}")        
-
-        result = self.network.ping_url(endpoint)
-        if(result == 200):
-            self.genAITab.EndPointsBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
-            )
-            self.networkLog.info(f"Network connection good {endpoint}")
+        if self.diagnosticStatus:
             self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Ready...")
-
+            
+            # pre-populate the unicode range with the selected glyphs
+            self.genAITab.UnicodeRangeEdit.set(self.getSelectedLayers())
 
         else:
-            self.genAITab.EndPointsBox.setBorderColor(
-                NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
-            )
-            self.networkLog.error(f"Network connection failure {result}")
-
-        # pre-populate the unicode range with the selected glyphs
-        self.genAITab.UnicodeRangeEdit.set(self.getSelectedLayers())
+            self.progressLog.error(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Not Ready...")
 
 
 
+        
     #
     #
     # Called when
@@ -448,7 +370,7 @@ class StudioAssist(FilterWithDialog):
                     get_font_url,
                     self.full_path_to_zip,
                     font_id,
-                    list_of_characters
+                    unicode_string
                  )
 
 
@@ -634,15 +556,11 @@ class StudioAssist(FilterWithDialog):
             try:
                 os.unlink(characterFileUrl)  # or os.remove(link_name)
                 self.progressLog.info(f"Removed symlink: {svgFileUrl} {characterFileUrl}")
-                self.progressLog.info(f"Glyph {glyphName} imported")
+                self.progressLog.info(f"Character {glyphName} imported")
 
                 # Correct the path direction
                 layerOfGlyph.correctPathDirection()
-                self.progressLog.info(f"Correcting path direction for {glyphName}")
-
-                # align the glyph to the baseline
-                self.shiftAndScale(layerOfGlyph)
-
+                
             except FileNotFoundError:
                 print(f"Symbolic link not found: {svgFileUrl} {characterFileUrl} {e.strerror}")
 
@@ -652,62 +570,12 @@ class StudioAssist(FilterWithDialog):
 
 
 
-    #
-    #
-    # Called when 
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def shiftAndScale(self, layer):
-
-        # Access the current font and selected glyph layer
-        font = self.font  # Current font
-       
-        # Get the cap height from the font's master
-        cap_height = font.masters[0].capHeight
-
-        # Get the bounding box of the glyph (the highest and lowest Y-coordinates)
-        min_y = min(node.y for path in layer.paths for node in path.nodes)
-        max_y = max(node.y for path in layer.paths for node in path.nodes)
-
-        # Calculate the current height of the glyph
-        current_height = max_y - min_y
-       
-        # Calculate the scale factor to match the cap height
-        scale_factor = cap_height / current_height
-
-        # Create a transformation matrix
-        transform = NSAffineTransform.transform()
-
-        # Step 1: Move the glyph to the baseline (shift Y so min_y becomes 0)
-        if self.gen_ai_debug_shift_imported_glyphs:
-            transform.translateXBy_yBy_(0, -min_y)
-        else:
-            transform.translateXBy_yBy_(0, 0)
-
-        # Step 2: Scale the glyph to match the cap height
-        if self.gen_ai_debug_scale_imported_glyphs:
-            transform.scaleBy_(scale_factor)
-        else:
-            transform.scaleBy_(1)
-        
-        # Apply the transformation to the glyph layer
-        layer.applyTransform(transform.transformStruct())
-
-        # Redraw the view to reflect changes
-        layer.clearSelection()
-        layer.updateMetrics()
-
-
-
-
 
     #
     #
     # Called when Action triggered by UI
     #
-    # Todo:
+    # Todo: Allowed characters to GET a-zA-Z as of now.
     #
     @objc.python_method
     def unicodeRangeCallback(self, sender):
@@ -740,22 +608,47 @@ class StudioAssist(FilterWithDialog):
                             )
                     else:
                         # Handle individual Unicode characters
-                        # self.list_of_unicodes.append(chr(int(part, 16)))
                         self.list_of_unicodes.append(part)
 
-
-                    # Todo:  validate the values in the list of unicodes
-                    # before enabling the generate button
-                    # self.genAITab.generateButton.enable(True)
-
-        # else:
-        #   self.genAITab.generateButton.enable(False)
+ 
+        
         if len(self.list_of_unicodes):
-            #self.genAITab.generateButton.enable(True)
+            #if self.isUnicodeSupported():
+             #   self.genAITab.generateButton.enable(True)
+               
+            #else:
+             #   self.progressLog.info(f"Plugin supports the following characters:  a-z and A-Z")
             self.genAITab.generateButton.enable(True)
+                
         else:
-            #self.genAITab.generateButton.enable(False)
             self.genAITab.generateButton.enable(False)
+
+
+
+
+
+
+   #
+    #
+    # Called when
+    #
+    # Todo:
+    #
+    @objc.python_method
+    def isUnicodeSupported(self):
+        
+        for unicode_char in self.list_of_unicodes:
+            unicode_value = ord(unicode_char)
+            print(unicode_char, unicode_value)
+
+        return True
+            # Check if the Unicode value is in the range for 'A'-'Z' or 'a'-'z'
+        #    if (0x0041 <= unicode_value <= 0x005A) or (0x0061 <= unicode_value <= 0x007A):
+         #       return True
+          #  else:
+           #     return False
+        
+
 
     #
     #
@@ -820,19 +713,148 @@ class StudioAssist(FilterWithDialog):
 
     #
     #
-    # Called when Action triggered by UI
+    # Called when
     #
     # Todo:
     #
     @objc.python_method
-    def simulateAPICalls(self, sender):
-        if sender.get():
-            self.gen_ai_debug_simulate_api_calls = True
-            self.progressLog.info("Simulation Mode")
+    def runDiagnosticTests(self):
 
-        else:
-            self.gen_ai_debug_simulate_api_calls = False
-            self.progressLog.info("Live Mode")
+        test_obj = test.Test(self.font)
+
+        #####
+
+        if self.diagnosticStatus:
+            # Testing the font to make sure has only one master
+            self.progressLog.info("Checking masters")
+
+            number_of_masters = test_obj.calculateMasters()
+
+            if number_of_masters == 1:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info("Font has 1 master")
+
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Font does not have the requied 1 master, font has {number_of_masters} masters")
+                self.diagnosticStatus = False
+
+        #####
+
+        if self.diagnosticStatus:
+            # Check that the font has the required characters
+            self.progressLog.info("Checking required characters are present")
+
+            missingCharacters = test_obj.calculateMissingCharacters()
+            if len(missingCharacters):
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Font is missing characters: {', '.join(missingCharacters)}")
+                self.diagnosticStatus = False
+
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info(f"Font has required characters")
+             
+
+        #####
+
+
+        if self.diagnosticStatus:
+            # Check that the required characters actually have outlines
+            self.progressLog.info("Checking required outlines present")
+
+            missingOutlines = test_obj.calculateMissingOutlines()
+            if len(missingOutlines):
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Font is missing outlines: {', '.join(missingOutlines)}")
+                self.diagnosticStatus = False
+
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info("Font has required outlines")
+                
+
+        #####
+
+
+        if self.diagnosticStatus:
+            # Check that the font is using the correct UPM
+            self.progressLog.info("Checking required Units per Em (UMM)")
+
+            units_per_em = test_obj.calculateUPM()
+            if units_per_em == 1000:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info(f"Font has required UPM {units_per_em}")
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Font does not have required UPM of 1000, font UPM is currently set to {units_per_em}")
+                self.diagnosticStatus = False
+
+
+        #####
+
+
+        if self.diagnosticStatus:
+            # Check that the font has the ascender and descender set in the OS/2 table
+            self.progressLog.info("Checking ascender and descender values are set in the OS/2 table")
+
+            ascender = test_obj.OS2TableGetAscender()
+            descender = test_obj.OS2TableGetDescender()
+
+            self.progressLog.info(f"Ascender: {ascender} Descender: {descender}")
+
+            if ascender != 0 and descender != 0:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info(f"Font has required ascender and descender set in the OS/2 table")
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Font does not have required ascender and descender values set in the OS/2 table")
+                self.diagnosticStatus = False
+
+
+        #####
+
+
+        if self.diagnosticStatus:
+            # Testing the network connection
+            endpoint = urljoin(self.gen_ai_base_url, self.gen_ai_GET_status_url)
+            endpoint = endpoint.replace("{font_id}", "1234")
+            
+            self.diagnosticLog.info(f"Checking network connection {endpoint}")        
+
+            result = self.network.ping_url(endpoint)
+            if(result == 200):
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(0, 1, 0, 0.5)
+                )
+                self.diagnosticLog.info(f"Network connection good")
+
+            else:
+                self.genAITab.diagnosticLabelBox.setBorderColor(
+                    NSColor.colorWithRed_green_blue_alpha_(1, 0, 0, 0.5)
+                )
+                self.diagnosticLog.error(f"Network connection failure {result}")
+                self.diagnosticStatus = False
 
 
 

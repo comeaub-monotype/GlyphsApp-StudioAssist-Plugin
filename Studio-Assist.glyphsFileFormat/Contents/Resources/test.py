@@ -118,7 +118,40 @@ class Test:
 
 
 
-#
+
+
+    #
+    #
+    # Called when
+    #
+    # Todo:
+    #
+    @objc.python_method
+    def OS2TableGetAscender(self):
+       
+        master = self.font.masters[0]
+        ascender = master.ascender
+        return ascender
+
+        
+
+    #
+    #
+    # Called when
+    #
+    # Todo:
+    #
+    @objc.python_method
+    def OS2TableGetDescender(self):
+
+        master = self.font.masters[0]
+        descender = master.ascender
+        return descender
+        
+
+
+
+    #
     #
     # Called when
     #

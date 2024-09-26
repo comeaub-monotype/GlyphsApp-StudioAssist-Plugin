@@ -110,10 +110,17 @@ class Api(object):
             if response.status_code == 200:
                 font_id = API_Data["font_id"]
                 return response.status_code, font_id
-            else:
+            
+            elif response.status_code == 202:
+                # message = API_Data["message"]
+                return response.status_code, None
+            
+            elif response.status_code == 503:
                 message = API_Data["message"]
                 return response.status_code, message
             
+            else:
+                return response.status_code, None
 
 
 
