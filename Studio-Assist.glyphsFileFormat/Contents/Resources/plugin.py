@@ -57,16 +57,12 @@ class StudioAssist(FilterWithDialog):
 
 
         # The base URL for the GenAI POST
-        # self.gen_ai_base_url            = "http://172.28.1.197:5000"
         self.gen_ai_base_url            = "https://glyphgenai-pp.monotype.com"     
         self.gen_ai_POST_font_url       = "/v1/font-outline/outline"
         self.gen_ai_GET_status_url      = "/v1/font-outline/outline/{font_id}/status"
         self.gen_ai_GET_zip_file_url    = "/v1/font-outline/outline/{font_id}"
         self.gen_ai_GET_engine_status   = "/v1/font-outline/engine-status"
 
-        self.gen_ai_debug_simulate_api_calls = False
-        self.gen_ai_debug_shift_imported_glyphs = False
-        self.gen_ai_debug_scale_imported_glyphs = False
         self.root_path = "~/Desktop/MonotypeGenAI/"
         self.export_path = ""
     
@@ -81,29 +77,15 @@ class StudioAssist(FilterWithDialog):
         Kerning_UI_start_x_position = 5
         Kerning_UI_sart_y_position = 50
 
-
         self.w = Window((width, height))
-
 
         # (left, top, width, height)
         self.w.tabs = Tabs((20, 10, -10, -10), ["Glyph Generation", "Kerning"])
+
+
+        # Outline Generation Tab
         self.genAITab = self.w.tabs[0]
         
-        #self.genAITab.EndPointsBox = Box((5, 25, 400, 25))
-        #self.genAITab.EndPointsLabel = TextBox((10, 27, 400, 22), "Endpoint Status")
-
-        #self.genAITab.MasterLabelBox = Box((5, 55, 400, 25))
-        #self.genAITab.MasterLabel = TextBox((10, 57, 400, 22), "Master Status")
-
-        #self.genAITab.CharacterLabelBox = Box((5, 85, 400, 25))
-        #self.genAITab.CharacterLabel = TextBox((10, 87, 400, 22), "Character Status")
-
-        #self.genAITab.OutlineLabelBox = Box((5, 115, 400, 25))
-        #self.genAITab.OutlineLabel = TextBox((10, 117, 400, 22), "Outline Status")
-
-        #self.genAITab.UPMLabelBox = Box((5, 145, 400, 25))
-        #self.genAITab.UPMLabel = TextBox((10, 147, 400, 22), "Units per Em Status")
-
         self.genAITab.UnicodeRangeLabel = TextBox(
             (GenAI_UI_start_x_position, GenAI_UI_sart_y_position, 375, 25),
             "Enter hexidecimal unicode values or range to generate",
@@ -127,7 +109,6 @@ class StudioAssist(FilterWithDialog):
             (525, 50, 50, 50), displayWhenStopped=False
         )
         
-
         # Progress Label
         # used to communcate the status of the plugin to the end user
         self.genAITab.progressLabelBox = Box((GenAI_UI_start_x_position, GenAI_UI_sart_y_position + 125, 600, 25))
@@ -139,19 +120,7 @@ class StudioAssist(FilterWithDialog):
         self.diagnosticStatus = True
 
 
-        # Development Options
-        # left, top, width, height
-        #self.genAITab.box = Box((460, 25, 200, 200))
-        #self.genAITab.boxtext = TextBox((465, 30, 150, 25), "Developer Options")
-
-        #self.genAITab.simulateAPICalls = CheckBox(
-        #    (465, 65, -10, 20),
-        #    "Simulate API Calls",
-        #    callback=self.simulateAPICalls,
-        #    value=False,
-        #)
-
-
+        # Kerning Tab
         self.kerningTab = self.w.tabs[1]
         self.kerningTab.text = TextBox((10, 10, -10, -10), "TBD")
 
@@ -174,11 +143,6 @@ class StudioAssist(FilterWithDialog):
         # Your init code goes here...
         self.progressLog    = Log(self.genAITab.progressLabel)
         self.diagnosticLog  = Log(self.genAITab.diagnosticLabel)
-        #self.networkLog     = Log(self.genAITab.EndPointsLabel)
-        #self.mastersLog     = Log(self.genAITab.MasterLabel)
-        #self.characterLog   = Log(self.genAITab.CharacterLabel)
-        #self.outlinesLog    = Log(self.genAITab.OutlineLabel)
-        #self.upmLog         = Log(self.genAITab.UPMLabel)
         self.network        = Api(self.progressLog)
 
 
@@ -190,7 +154,7 @@ class StudioAssist(FilterWithDialog):
         self.list_of_unicodes = []
         self.list_of_AI_generated_outlines = []
 
-        # This callback is called when a user generates glyphs which
+        # This method is called when a user generates glyphs which
         # triggers the plugin to export the active font file to 
         # be POSTED back to the genAI service
         Glyphs.addCallback(self.exportCallback, DOCUMENTEXPORTED)
@@ -206,6 +170,7 @@ class StudioAssist(FilterWithDialog):
             
             # pre-populate the unicode range with the selected glyphs
             self.genAITab.UnicodeRangeEdit.set(self.getSelectedLayers())
+            
 
         else:
             self.progressLog.error(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Not Ready...")
@@ -257,32 +222,13 @@ class StudioAssist(FilterWithDialog):
         
         self.genAITab.progressSpinner.start()
         
-        if self.gen_ai_debug_simulate_api_calls:
-            self.progressLog.info("Simulating Outline Generation")
-            self.simulateGeneratingOutlines()
-        else:
-            self.progressLog.info("Generating Outlines")
-            self.generateOutlines()
+        self.progressLog.info("Generating Outlines")
+        self.generateOutlines()
 
-        self.genAITab.progressSpinner.stop()
         self.genAITab.generateButton.enable(False)
+        self.genAITab.progressSpinner.stop()
 
 
-    #
-    #
-    # Called when
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def simulateGeneratingOutlines(self):
-        # The data in the SVG should be placed that the origin (0, 0) is at the top left of the glyph.
-        # Glyphs will shift it up by the height of the view box as the coordinate systems in
-        # font/Glyphs and .svg are different.
-        parts = __file__.split("plugin.py")
-        
-        path = os.path.join(parts[0], "SimulatedOutlineImages")
-        self.import_glyph_outlines(path)
 
     #
     #
@@ -318,7 +264,7 @@ class StudioAssist(FilterWithDialog):
 
             # 
             # POSTing a font can be time consuming event, currently it can take 
-            # upwards of 50 minutes to complete the "fine tuning".  The early design 
+            # a long time to complete the "fine tuning".  The early design 
             # of the plugin would make the POST API call and then enter into a 
             # polling situation where the plugin would repeatedly ask the service
             # if the fine tuning was completed.  Upon completeion the plugin would
@@ -351,12 +297,7 @@ class StudioAssist(FilterWithDialog):
                 # for long lists of characters the plugin will need to do multiple GET calls
                 # to retrieve the outlines.
                 # fonr now limit the number of characters to 5
-                #
-                #for i in range(0, len(self.list_of_unicodes), 5):
-                 #   short_list = ''.join(self.list_of_unicodes[i:i+5])
-                  
-                  #  self.progressLog.info(f"Short list {short_list}")
-                
+                #                
                 for unicode in self.list_of_unicodes:
                     decimal_to_character = chr(int(unicode, 16))
                     list_of_characters.append(decimal_to_character)
@@ -375,6 +316,7 @@ class StudioAssist(FilterWithDialog):
 
 
                 # unpack the images and verify there is one image for each unicode requested
+                #
                 if get_font_status == 200:
                     self.progressLog.info(f"Unpacking the zip file {self.full_path_to_zip}")
                     extraction_folder = os.path.join(self.export_path, "Extracted")
