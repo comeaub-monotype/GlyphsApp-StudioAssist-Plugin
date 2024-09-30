@@ -13,6 +13,7 @@ import os
 import test
 from log import Log
 from rest import Api
+import re
 
 
 from GlyphsApp import *
@@ -256,51 +257,53 @@ class StudioAssist(FilterWithDialog):
             myTuple = (parts[0], "GENERATED.zip")
             self.full_path_to_zip = ".".join(myTuple)
 
+            #
+            # Plugin POSTs the font  
+            # Server responds with 202 and font_id
+            # Plugin receives 202
+
+            # Plugin enters continuous loop for 10 minutes
+            # Plugin GETs the status using the font_id
+            #  if Server responds with 503
+            #  Plugin waits 1 minute goes to top of loop
+            #  else Server responds with 200
+            # Plugin advances to next step
+
+            # Plugin GETs the zipf ile
+            # Plugin imports images
+            # etc...
+
             # post the font so that the service can do the fine tuning
             self.progressLog.info(f"Posting the font to {post_url}")
             post_status, font_id = self.network.post_font(
                 post_url, self.full_export_font_path
             )
 
-            # 
-            # POSTing a font can be time consuming event, currently it can take 
-            # a long time to complete the "fine tuning".  The early design 
-            # of the plugin would make the POST API call and then enter into a 
-            # polling situation where the plugin would repeatedly ask the service
-            # if the fine tuning was completed.  Upon completeion the plugin would
-            # move on to the next step which is to GET the zip file with the outlines.
-            #
-            # This turns out not to be a good design because the service so for now 
-            # the plugin will POST the font and will then skip over the polling and
-            # issue the GET outlines API call.
-            # 
-            # This user experience will be worked out in the future.
             #
             if post_status == 202:
                 self.progressLog.info(f"Polling {poll_url} for completion")
                 poll_url = poll_url.replace("{font_id}", font_id)
-                poll_status = self.network.poll_for_completion(poll_url, font_id)
-
-
-
+                poll_status = self.network.poll_for_completion(poll_url, font_id)       
             
-            if post_status == 200:
+            
+            # 
+            elif post_status == 503:
+                self.progressLog.error(f"Error: {post_status} return code {font_id}")
+                return
+
+
+            #
+            elif post_status == 200:
                 self.progressLog.info(f"POST completed font_id is {font_id}")
                 get_font_url = get_font_url.replace("{font_id}", font_id)
                 self.progressLog.info(f"GETing the zip file {get_font_url}")
 
                 list_of_characters = []
 
-
-
-
-                # for long lists of characters the plugin will need to do multiple GET calls
-                # to retrieve the outlines.
-                # fonr now limit the number of characters to 5
-                #                
-                for unicode in self.list_of_unicodes:
-                    decimal_to_character = chr(int(unicode, 16))
-                    list_of_characters.append(decimal_to_character)
+                #                 
+                for decimal_code in self.list_of_unicodes:
+                    character_code = chr(decimal_code)
+                    list_of_characters.append(character_code)
                     unicode_string = ''.join(list_of_characters)
 
             
@@ -333,18 +336,10 @@ class StudioAssist(FilterWithDialog):
                 else:
                     self.progressLog.error(f"Error: {get_font_status}")
 
-            # 
-            # The service that handles the POST call is running on a single GPU instance
-            # and can only handle one request at a time.  If the service is busy it will
-            # return a 503 status code.  The plugin will need to retry the POST call at a 
-            # later time. 
-            # In the future the plan is to have the service scale to handle multiple requests
-            #
-            elif post_status == 503:
-                self.progressLog.error(f"Error: {post_status} return code {font_id}")
-
+            
             else:
                 self.progressLog.error(f"Error: POST failed with a {post_status}")
+                return
 
 
      
@@ -378,8 +373,8 @@ class StudioAssist(FilterWithDialog):
 
         self.progressLog.info(f"Checking for AI generated outlines from {directory}")
         
-        for pattern in self.list_of_unicodes:
-            zero_filleda_pattern = pattern.zfill(4)
+        for decimal_value in self.list_of_unicodes:
+            zero_filleda_pattern = hex(decimal_value)[2:].upper().zfill(4)
             filename = zero_filleda_pattern + ".svg"
             self.progressLog.info(f"Searching {directory} for {filename}")
 
@@ -504,7 +499,7 @@ class StudioAssist(FilterWithDialog):
                 layerOfGlyph.correctPathDirection()
                 
             except FileNotFoundError:
-                print(f"Symbolic link not found: {svgFileUrl} {characterFileUrl} {e.strerror}")
+                self.progressLog.error(f"Symbolic link not found: {svgFileUrl} {characterFileUrl} {e.strerror}")
 
         except OSError as e:
             self.progressLog.error(f"Creating symlink failed: {svgFileUrl} {characterFileUrl} {e.strerror}")
@@ -538,58 +533,32 @@ class StudioAssist(FilterWithDialog):
 
                     if "-" in part:  # Handle ranges
                         start, end = part.split("-")
-                        self.progressLog.info(f"start {start}  end {end}")
-
+                        
                         if start and end:
-                            # Convert the range to a list of Unicode characters
-                            self.list_of_unicodes.extend(
-                                [
-                                    chr(code)
-                                    for code in range(int(start, 16), int(end, 16) + 1)
-                                ]
-                            )
+                            self.progressLog.info(f"start {start}  end {end}")
+
+                            start = int(start, 16)
+                            end = int(end, 16)
+
+                            if start and end > start:
+                                for code in range(start, end + 1):
+                                    self.list_of_unicodes.append(code)
+
                     else:
                         # Handle individual Unicode characters
+                        part = int(part, 16)
                         self.list_of_unicodes.append(part)
 
  
         
         if len(self.list_of_unicodes):
-            #if self.isUnicodeSupported():
-             #   self.genAITab.generateButton.enable(True)
-               
-            #else:
-             #   self.progressLog.info(f"Plugin supports the following characters:  a-z and A-Z")
             self.genAITab.generateButton.enable(True)
-                
         else:
             self.genAITab.generateButton.enable(False)
 
 
 
 
-
-
-   #
-    #
-    # Called when
-    #
-    # Todo:
-    #
-    @objc.python_method
-    def isUnicodeSupported(self):
-        
-        for unicode_char in self.list_of_unicodes:
-            unicode_value = ord(unicode_char)
-            print(unicode_char, unicode_value)
-
-        return True
-            # Check if the Unicode value is in the range for 'A'-'Z' or 'a'-'z'
-        #    if (0x0041 <= unicode_value <= 0x005A) or (0x0061 <= unicode_value <= 0x007A):
-         #       return True
-          #  else:
-           #     return False
-        
 
 
     #
@@ -648,7 +617,7 @@ class StudioAssist(FilterWithDialog):
         except:
             # Error. Print exception.
             import traceback
-            print(traceback.format_exc())
+            self.progressLog.error(f"Export failed: {traceback.format_exc()}")  
 
 
 

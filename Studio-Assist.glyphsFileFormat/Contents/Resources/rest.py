@@ -112,8 +112,8 @@ class Api(object):
                 return response.status_code, font_id
             
             elif response.status_code == 202:
-                # message = API_Data["message"]
-                return response.status_code, None
+                font_id = API_Data["font_id"]
+                return response.status_code, font_id
             
             elif response.status_code == 503:
                 message = API_Data["message"]
@@ -140,17 +140,41 @@ class Api(object):
 
         start_time = time.time()
 
-        while True:
+        while time.time() - start_time < timeout:
             try:
                 response = requests.get(poll_url, params=params, timeout=(self.connect_timeout, self.read_timeout))
                 response.raise_for_status()  # Raise an exception for non-2xx status codes
                 self.networkLog.info(f"Response: {response.status_code}") 
-                return response.status_code
             
-            except requests.exceptions.RequestException as e:
-                if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Timed out after {timeout} seconds")
-                    time.sleep(interval)
+                if response.status_code == 200:
+                    print("Success! Received 200 response.")
+                    return response
+            
+                print(f"Received {response.status_code}. Retrying in {interval} seconds...")
+
+            except requests.RequestException as e:
+                print(f"An error occurred: {e}. Retrying in {interval} seconds...")
+
+            time.sleep(interval)
+
+        raise Exception(f"Timeout reached: No 200 response received within {timeout} seconds.")
+
+
+
+
+       # while True:
+        #    try:
+         #       response = requests.get(poll_url, params=params, timeout=(self.connect_timeout, self.read_timeout))
+          #      response.raise_for_status()  # Raise an exception for non-2xx status codes
+           #     self.networkLog.info(f"Response: {response.status_code}") 
+            #    return response.status_code
+            
+        #    except requests.exceptions.RequestException as e:
+         #       if time.time() - start_time > timeout:
+          #          raise TimeoutError(f"Timed out after {timeout} seconds")
+           #         time.sleep(interval)
+            #    else:
+             #       continue
          
 
 

@@ -5,28 +5,28 @@ Glyphs App Plugin that provides Glyphs App users with the access to Monotypes ge
 
 Requirements:
     Glyphs App Version 3.2.3 (3260)
-
+    Monotype VPN connection
 
 
 
 Installation:
 
-    Glyphs App Plugin Manager
+    Glyphs App Plugin Manager:
         This method is not supported.
 
 
-    Double Click
-        Requires Glyphs App version 3.2.3 (3260) or above to be be installed and working
+    ZIP File:
         Unzip the GlyphsApp-StudioAssist-Plugin
         From the GlyphsApp-StudioASsist-Plugin folder locate the Studio-Assist.glyphsFileFormat file and double click on it
-        If you have Glyphs App installed it will launch and ask if you wan to install the plugin click Install
-        If you get a dialog indicating The plugin appears to be in a git repository click on Copy.
-
+        If you have Glyphs App installed it will launch and ask if you wan to install the plugin from an alias on Git or to copy the plugin, select copy the plugin
         Restart Glyphs App
         Open up a font file
         Select a layer from the glyph view
         Click Filter->Monotype Assist (version)
-        The Monotype Studio Assist main dialog window should be presented.
+        The Monotype Studio Assist main dialog window should be presented
+
+        Hint: From the glyphs app menu select Window->Macro Panel
+              This will open a seperate dialog that will reveal information from the plugin at run time
 
 
 
