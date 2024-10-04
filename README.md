@@ -48,12 +48,16 @@ Development Installation
 
     Create the soft link
         in order for Glyphs App to resolve the plugin it has to reside in the following folder
-        ~(your-path)/Library/Application Support/Glyphs 3/Plugins 
+            ~(your-path)/Library/Application Support/Glyphs 3/Plugins 
 
         from a terminal window navigate to 
-        ~(yoour-path)/Library/Application Support/Glyphs 3/Plugins
+            ~(your-path)/Library/Application Support/Glyphs 3/Plugins
+        
+        create the soft link to your development area
+            ln -s ~/Development/Glyphs/Plugins/GlyphsApp-StudioAssist-Plugin/Studio-Assist.glyphsFileFormat Studio-Assist.glyphsFileFormatc
+
 
         Restart Glyphs App
-        load a font file and select a layer
+        load a font file and select a layer (outline or glyph whatever its called)
         click filer->Monotype Assist (version) 
         your development version of Monotype Studio Assist main dialog window should be presented
