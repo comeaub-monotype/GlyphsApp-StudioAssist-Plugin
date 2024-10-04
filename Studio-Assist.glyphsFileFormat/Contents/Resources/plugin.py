@@ -31,7 +31,6 @@ from AppKit import NSAffineTransform
 
 #
 #
-# Called when
 #
 # Todo:
 #
@@ -57,12 +56,17 @@ class StudioAssist(FilterWithDialog):
         )
 
 
-        # The base URL for the GenAI POST
+        # The base URL for the GenAI services
         self.gen_ai_base_url            = "https://glyphgenai-pp.monotype.com"     
         self.gen_ai_POST_font_url       = "/v1/font-outline/outline"
         self.gen_ai_GET_status_url      = "/v1/font-outline/outline/{font_id}/status"
         self.gen_ai_GET_zip_file_url    = "/v1/font-outline/outline/{font_id}"
         self.gen_ai_GET_engine_status   = "/v1/font-outline/engine-status"
+
+        # Bryan Comeau while the AI GPU machine is turned off, you may hit these test APIs for your testing -
+        # POST http://172.28.1.197:5000//v1/font-outline/outline
+        # GET http://172.28.1.197:5000//v1/font-outline/outline/
+ 
 
         self.root_path = "~/Desktop/MonotypeGenAI/"
         self.export_path = ""
@@ -157,7 +161,7 @@ class StudioAssist(FilterWithDialog):
 
         # This method is called when a user generates glyphs which
         # triggers the plugin to export the active font file to 
-        # be POSTED back to the genAI service
+        # be POSTed back to the genAI service
         Glyphs.addCallback(self.exportCallback, DOCUMENTEXPORTED)
        
 
@@ -169,9 +173,8 @@ class StudioAssist(FilterWithDialog):
         if self.diagnosticStatus:
             self.progressLog.info(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Ready...")
             
-            # pre-populate the unicode range with the selected glyphs
+            # pre-populate the unicode range edit field with the selected glyph(s)
             self.genAITab.UnicodeRangeEdit.set(self.getSelectedLayers())
-            
 
         else:
             self.progressLog.error(f"Studio Assist Plugin Version {self.gen_ai_plugin_version} Not Ready...")
@@ -181,7 +184,7 @@ class StudioAssist(FilterWithDialog):
         
     #
     #
-    # Called when
+    # Called when the apply button is pressed
     #
     # Todo: Figure out how to use this 
     #
@@ -189,6 +192,7 @@ class StudioAssist(FilterWithDialog):
     def filter(self, layer, inEditView, customParameters):
         return
         # Apply your filter code here
+
 
 
     #
@@ -214,7 +218,7 @@ class StudioAssist(FilterWithDialog):
 
     #
     #
-    # Called when
+    # Called when the generate outline button is pressed
     #
     # Todo:
     #
@@ -233,10 +237,8 @@ class StudioAssist(FilterWithDialog):
 
     #
     #
-    # Called when
     #
     # Todo:
-    # Fix familyname issue on export
     #
     @objc.python_method
     def generateOutlines(self):
@@ -257,42 +259,31 @@ class StudioAssist(FilterWithDialog):
             myTuple = (parts[0], "GENERATED.zip")
             self.full_path_to_zip = ".".join(myTuple)
 
-            #
-            # Plugin POSTs the font  
-            # Server responds with 202 and font_id
-            # Plugin receives 202
 
-            # Plugin enters continuous loop for 10 minutes
-            # Plugin GETs the status using the font_id
-            #  if Server responds with 503
-            #  Plugin waits 1 minute goes to top of loop
-            #  else Server responds with 200
-            # Plugin advances to next step
-
-            # Plugin GETs the zipf ile
-            # Plugin imports images
-            # etc...
-
-            # post the font so that the service can do the fine tuning
+            # post the font so that the genAI service can do the fine tuning
+            # this can be a lengthy process so the plugin will poll the service
             self.progressLog.info(f"Posting the font to {post_url}")
             post_status, font_id = self.network.post_font(
                 post_url, self.full_export_font_path
             )
 
-            #
+            # service received the font and is processing it
+            # at one time there was discussion on how to figure out when
+            # the service was done processing the font and ready to generate outlines
+            # one idea was to poll the service until the service returned a 200 status code
             if post_status == 202:
                 self.progressLog.info(f"Polling {poll_url} for completion")
                 poll_url = poll_url.replace("{font_id}", font_id)
                 poll_status = self.network.poll_for_completion(poll_url, font_id)       
             
             
-            # 
+            # service is probably busy 
             elif post_status == 503:
                 self.progressLog.error(f"Error: {post_status} return code {font_id}")
                 return
 
 
-            #
+            # service reeived the font and the client is ready to generate outlines
             elif post_status == 200:
                 self.progressLog.info(f"POST completed font_id is {font_id}")
                 get_font_url = get_font_url.replace("{font_id}", font_id)
@@ -319,7 +310,6 @@ class StudioAssist(FilterWithDialog):
 
 
                 # unpack the images and verify there is one image for each unicode requested
-                #
                 if get_font_status == 200:
                     self.progressLog.info(f"Unpacking the zip file {self.full_path_to_zip}")
                     extraction_folder = os.path.join(self.export_path, "Extracted")
@@ -336,7 +326,6 @@ class StudioAssist(FilterWithDialog):
                 else:
                     self.progressLog.error(f"Error: {get_font_status}")
 
-            
             else:
                 self.progressLog.error(f"Error: POST failed with a {post_status}")
                 return
