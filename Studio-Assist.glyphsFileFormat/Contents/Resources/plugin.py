@@ -63,6 +63,8 @@ class StudioAssist(FilterWithDialog):
         self.gen_ai_GET_zip_file_url    = "/v1/font-outline/outline/{font_id}"
         self.gen_ai_GET_engine_status   = "/v1/font-outline/engine-status"
 
+        # Swagger-UI
+        # http://172.28.1.197:5000/swagger-ui
         # Bryan Comeau while the AI GPU machine is turned off, you may hit these test APIs for your testing -
         # POST http://172.28.1.197:5000//v1/font-outline/outline
         # GET http://172.28.1.197:5000//v1/font-outline/outline/
